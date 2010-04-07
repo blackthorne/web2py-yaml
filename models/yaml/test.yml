@@ -12,11 +12,12 @@ animal:
   name: string
   type: string
   sex: string
-
+  extra: reference name
+  
 person:
   name: string
-  age: int requires=IS_INT(), default=12
-  color: string
-  constraints:
-    const1=IS_INT()
-    const2=IS_INT()
+  age: int, requires=IS_INT(), default='12'
+  color:
+    type: string
+    requires: IS_INT()
+    default: IS_INT()

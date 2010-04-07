@@ -15,7 +15,7 @@ animal:
 
 person:
   name: string
-  age: int
+  age: int requires=IS_INT(), default=12
   color: string
   constraints:
     const1=IS_INT()
