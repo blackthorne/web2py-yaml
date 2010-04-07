@@ -1,0 +1,22 @@
+db:
+  name: test
+  dbms: postgres
+  dbfile: storage.sqlite
+  user: john
+  pass: Doe
+  hostname: localhost
+  parameters: pool_size=10
+  options: none
+
+animal:
+  name: string
+  type: string
+  sex: string
+
+person:
+  name: string
+  age: int
+  color: string
+  constraints:
+    const1=IS_INT()
+    const2=IS_INT()
