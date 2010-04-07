@@ -8,44 +8,86 @@ import yaml,sys #headers
 class Table:
 	"""represents a table that may be part of a Model"""
 	#----------------------------------------------------------------------
-	def __init__(self, name, fields={}, constraints=[]):
+	def __init__(self, name, fields={}, constraints={}):
 		"""Constructor"""
 		self.name, self.fields, self.constraints = name, fields, constraints
 		
+	def gen_constraints(self, dbname):
+		code = ''
+		for field in self.fields:
+			if self.fields[field].__class__() == {}:
+				for key in self.fields[field]:
+					if key != 'type':
+						code += "%s.%s.%s.%s=%s\n" % (dbname, self.name, field, key, self.fields[field][key])
+		return code
+	
 	def gen_code(self, dbname):
 		code = "%s.define_table(\'%s\'\n" % (dbname, self.name)
 		for i,field in enumerate(self.fields):
-			if field == 'constraints':
-				self.constraints.append(self.fields[field])
+			if self.fields[field] .__class__() == {}:
+				code += "\tSQLField(\'%s\', \'%s\')" % (field, self.fields[field]['type'])
+			elif ',' in self.fields[field]:
+				commaindex=self.fields[field].find(',')
+				code += "\tSQLField(\'%s\', \'%s\',%s)" % (field, self.fields[field][:commaindex], self.fields[field][commaindex+1:])
 			else:
-				code += "\tSQLField(\'%s\', \'%s\')" % (field, self.fields[field]) # TODO: fix requires/default bug 
-				if i +1 != len(self.fields):
-					code += ','
-				code += '\n'
+				code += "\tSQLField(\'%s\', \'%s\')" % (field, self.fields[field]) 
+			if i +1 != len(self.fields):
+				code += ','
+			code += '\n'
 		code += ')\n'
+		constraints = self.gen_constraints(dbname)
+		if constraints != '':
+			code += constraints
 		return code 
 	
 ########################################################################
 class Model:
 	"""defines a Model to be translated"""
-
-	#----------------------------------------------------------------------
-	def __init__(self, yaml_filename):
-		"""Constructor"""
-		self.conf, self.tables = self.load_yaml_file(yaml_filename), []
-		for table in self.conf:
+	
+	def gen_db_def(self):
+		if self.conf['db']['parameters'] == '':
+			return "%s = DAL(\'%s\')\n" % (self.conf['db']['name'], self.conf['db']['dbline'])
+		else:
+			return "%s = DAL(\'%s\', %s)\n" % (self.conf['db']['name'], self.conf['db']['dbline'], self.conf['db']['parameters'])
+	
+	def gen_tables(self, dataMap, tables = {}):
+		for table in dataMap:
 			if table != 'db':
-				self.tables.append(Table(table, self.conf[table]))
-		for table in self.tables:                         # remove ?
-			del self.conf[table.name]
-		for key,default in [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',[])]:
-			self.set_default(key,default)
+				tables[table] = Table(table, dataMap[table])
+				for field in dataMap[table].keys():
+					if field == 'constraints':
+						tables[table].constraints = dataMap[table]['constraints']
+						del tables[table].fields[field]
+		return tables
+	
+	def gen_conf(self, dataMap):
+		for table in self.tables:                         # not really needed
+			del dataMap[table]                       #
+		for key,default in self.defaults:
+			if not dataMap['db'].has_key(key):
+				dataMap['db'][key] = default
+		if dataMap['db']['dbline'] == '':
+			if dataMap['db']['dbms'] == 'sqlite':
+				dataMap['db']['dbline'] = "sqlite://" + dataMap['db']['dbfile'] 
+			else:
+				dataMap['db']['dbline'] = "%s://%s:%s@%s/%s" % (dataMap['db']['dbms'], dataMap['db']['username'], dataMap['db']['password'], dataMap['db']['hostname'], dataMap['db']['name'])
+		options = dataMap['db']['options']                                    #
+		dataMap['db']['options'] = []                                              #
+		for option in options.split(','):                                            # not really needed
+			dataMap['db']['options'].append(option.strip())      #
+		return dataMap
+	
+	#----------------------------------------------------------------------
+	def __init__(self, 
+	             yaml_filename, 
+	             defaults = [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',[]), ('dbline','')]):
+		"""Constructor"""
+		dataMap = self.load_yaml_file(yaml_filename)                                 # 
+		self.defaults, self.tables = defaults, self.gen_tables(dataMap)        # these lines order should be respected
+		self.conf = self.gen_conf(dataMap)                                                      #
+		print self.gen_db_def()
 		for table in self.tables:
-			print table.gen_code(self.conf['db']['name'])
-		
-	def set_default(self, conf_key, default_value):
-		if not self.conf['db'].has_key(conf_key):
-			self.conf['db'][conf_key] = default_value
+			print self.tables[table].gen_code(self.conf['db']['name'])
 			
 	def load_yaml_file(self, filename):
 		file = open(filename)
