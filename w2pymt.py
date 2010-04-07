@@ -22,7 +22,31 @@ class Table:
 		code += ')'
 		return code 
 	
+########################################################################
+class Model:
+	"""defines a Model to be translated"""
 
+	#----------------------------------------------------------------------
+	def __init__(self,
+	             name, 
+	             dbms = 'sqlite',
+	             dbfile = 'storage.sqlite',
+	             username = '', 
+	             password = '',
+	             hostname = 'localhost',
+	             parameters = '',
+	             options = []
+	     ):
+		"""Constructor"""
+		self.name, self.dbms, self.dbfile, self.username, self.password = name, dbms, dbfile, username, password
+		self.hostname, self.parameters, self.options = hostname, parameters, options
+	
+	def load_yaml_file(self, filename):
+		file = open(filename)
+		dataMap = yaml.load(file)
+		file.close()
+		return dataMap
+		
 def main():
 	a = Table('asd')
 	
