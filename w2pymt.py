@@ -99,11 +99,21 @@ class Model:
 	
 	def __str__(self):
 		return self.gen_code()
-			
+
+def usage():
+	print 'ERROR: missing or wrongly defined parameters'
+	print 'usage:'
+	print '\t' + sys.argv[0] + " <yaml_model> <db_output_file>\n"
+	exit()
+	
 def main():
 	print 'Loading model...'
-	model = Model('models/yaml/test.yml')
-	print model
-	
+	if len(sys.argv) == 3:
+		model = Model(sys.argv[1])
+		file = open(sys.argv[2],'w')
+		file.write(model.gen_code())
+		file.close()
+	else:
+		usage()
 if __name__ == '__main__':
 	main()
