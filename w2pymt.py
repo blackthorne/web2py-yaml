@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 # Web2py YAML Model Translator
 
-import yaml,sys #headers
+import yaml,sys,headers
 
 ########################################################################
 class Table:
@@ -37,13 +37,12 @@ class Table:
 		code += ')\n'
 		constraints = self.gen_constraints(dbname)
 		if constraints != '':
-			code += constraints
+			code += constraints + '\n'
 		return code 
 	
 ########################################################################
 class Model:
 	"""defines a Model to be translated"""
-	
 	def gen_db_def(self):
 		if self.conf['db']['parameters'] == '':
 			return "%s = DAL(\'%s\')\n" % (self.conf['db']['name'], self.conf['db']['dbline'])
@@ -80,24 +79,31 @@ class Model:
 	#----------------------------------------------------------------------
 	def __init__(self, 
 	             yaml_filename, 
-	             defaults = [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',[]), ('dbline','')]):
+	             defaults = [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',['all']), ('dbline','')]):
 		"""Constructor"""
 		dataMap = self.load_yaml_file(yaml_filename)                                 # 
 		self.defaults, self.tables = defaults, self.gen_tables(dataMap)        # these lines order should be respected
 		self.conf = self.gen_conf(dataMap)                                                      #
-		print self.gen_db_def()
-		for table in self.tables:
-			print self.tables[table].gen_code(self.conf['db']['name'])
 			
 	def load_yaml_file(self, filename):
 		file = open(filename)
 		dataMap = yaml.load(file)
 		file.close()
 		return dataMap
-		
+
+	def gen_code(self):
+		code = headers.gen_template(self.conf['db']['name'], self.gen_db_def(), self.conf['db']['options'])
+		for table in self.tables:
+			code += self.tables[table].gen_code(self.conf['db']['name'])
+		return code
+	
+	def __str__(self):
+		return self.gen_code()
+			
 def main():
 	print 'Loading model...'
 	model = Model('models/yaml/test.yml')
+	print model
 	
 if __name__ == '__main__':
 	main()
