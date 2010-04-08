@@ -69,17 +69,20 @@ class Model:
 			if dataMap['db']['dbms'] == 'sqlite':
 				dataMap['db']['dbline'] = "sqlite://" + dataMap['db']['dbfile'] 
 			else:
-				dataMap['db']['dbline'] = "%s://%s:%s@%s/%s" % (dataMap['db']['dbms'], dataMap['db']['username'], dataMap['db']['password'], dataMap['db']['hostname'], dataMap['db']['name'])
+				dataMap['db']['dbline'] = "%s://%s:%s@%s/%s" % (dataMap['db']['dbms'], dataMap['db']['username'], dataMap['db']['password'], dataMap['db']['hostname'], dataMap['db']['name'])		
 		options = dataMap['db']['options']                                    #
-		dataMap['db']['options'] = []                                              #
-		for option in options.split(','):                                            # not really needed
-			dataMap['db']['options'].append(option.strip())      #
+		dataMap['db']['options'] = []
+		if ',' in options:#
+			for option in options.split(','):                                            # not really needed
+				dataMap['db']['options'].append(option.strip())      #
+		else:
+			dataMap['db']['options'] = [options]
 		return dataMap
 	
 	#----------------------------------------------------------------------
 	def __init__(self, 
 	             yaml_filename, 
-	             defaults = [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',['all']), ('dbline','')]):
+	             defaults = [('dbms','sqlite'),('username',''),('password',''),('hostname','localhost'),('parameters',''), ('options',['all']), ('dbline',''), ('dbfile', 'storage.sqlite')]):
 		"""Constructor"""
 		dataMap = self.load_yaml_file(yaml_filename)                                 # 
 		self.defaults, self.tables = defaults, self.gen_tables(dataMap)        # these lines order should be respected
@@ -107,12 +110,14 @@ def usage():
 	exit()
 	
 def main():
-	print 'Loading model...'
 	if len(sys.argv) == 3:
+		print 'Loading model...'
 		model = Model(sys.argv[1])
 		file = open(sys.argv[2],'w')
+		print 'Generating code to output file...'
 		file.write(model.gen_code())
 		file.close()
+		print 'done'
 	else:
 		usage()
 if __name__ == '__main__':
